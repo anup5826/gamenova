@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Neon Racer</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #050510;
+            color: white;
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 520px;
+            text-align: center;
+        }
+
+        .top-bar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 18px;
+            background: #101020;
+            border: 2px solid #222244;
+            border-radius: 12px 12px 0 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .score {
+            color: #00ffff;
+        }
+
+        .speed {
+            color: #ff4dff;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            background: #080812;
+            border-left: 2px solid #222244;
+            border-right: 2px solid #222244;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-around;
+            gap: 15px;
+            padding: 15px;
+            background: #101020;
+            border: 2px solid #222244;
+            border-radius: 0 0 12px 12px;
+        }
+
+        .control-btn {
+            width: 120px;
+            height: 55px;
+            border: none;
+            border-radius: 12px;
+            background: #18182d;
+            color: white;
+            font-size: 25px;
+            font-weight: bold;
+            border: 2px solid #00ffff;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        .control-btn:active {
+            transform: scale(0.94);
+            background: #25254a;
+        }
+
+        .message {
+            position: fixed;
+            inset: 0;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 10;
+        }
+
+        .game-over-box {
+            background: #101020;
+            border: 2px solid #ff3bff;
+            border-radius: 18px;
+            padding: 30px;
+            width: 90%;
+            max-width: 360px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.4);
+        }
+
+        .game-over-box h1 {
+            color: #ff4dff;
+            margin-bottom: 15px;
+        }
+
+        .game-over-box p {
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+
+        #restartBtn {
+            padding: 12px 28px;
+            border: none;
+            border-radius: 10px;
+            background: #00ffff;
+            color: #050510;
+            font-size: 17px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .hint {
+            margin-top: 10px;
+            color: #888;
+            font-size: 13px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="game-container">
+
+    <div class="top-bar">
+        <div class="score">
+            SCORE: <span id="score">0</span>
+        </div>
+
+        <div class="speed">
+            SPEED: <span id="speed">1</span>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas" width="500" height="700"></canvas>
+
+    <div class="controls">
+
+        <button
+            id="leftBtn"
+            class="control-btn">
+            ◀
+        </button>
+
+        <button
+            id="rightBtn"
+            class="control-btn">
+            ▶
+        </button>
+
+    </div>
+
+    <div class="hint">
+        Keyboard: ← → or A / D
+    </div>
+
+</div>
+
+
+<!-- GAME OVER -->
+<div id="gameOverScreen" class="message">
+
+    <div class="game-over-box">
+
+        <h1>GAME OVER</h1>
+
+        <p>
+            Your Score:
+            <strong id="finalScore">0</strong>
+        </p>
+
+        <button id="restartBtn">
+            PLAY AGAIN
+        </button>
+
+    </div>
+
+</div>
+
+
+<script src="neon-racer.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,1968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Lost Kingdom - Adventure</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    background:#06040d;
+    color:white;
+    font-family:Arial,sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.game{
+    width:100%;
+    max-width:900px;
+    padding:10px;
+}
+
+h1{
+    text-align:center;
+    color:#ffd700;
+    margin-bottom:8px;
+    text-shadow:0 0 15px #ffd700;
+}
+
+/* MAIN MENU */
+
+.main-menu{
+    display:block;
+    width:auto;
+    height:auto;
+    margin:0 auto 9px;
+    padding:8px 20px;
+    background:#171221;
+    color:#ffd700;
+    border:1px solid #ffd700;
+    border-radius:10px;
+    font-size:14px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.main-menu:hover{
+    background:#30243b;
+    box-shadow:0 0 15px rgba(255,215,0,.3);
+}
+
+.hud{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:6px;
+    margin-bottom:7px;
+}
+
+.box{
+    background:#151020;
+    border:1px solid #80651d;
+    border-radius:9px;
+    padding:7px;
+    text-align:center;
+    font-size:11px;
+}
+
+.box span{
+    display:block;
+    color:#ffd700;
+    font-size:17px;
+    font-weight:bold;
+    margin-top:2px;
+}
+
+.canvasBox{
+    border:2px solid #ffd700;
+    border-radius:13px;
+    overflow:hidden;
+    box-shadow:0 0 25px rgba(255,215,0,.2);
+}
+
+canvas{
+    width:100%;
+    display:block;
+    background:#172517;
+}
+
+.controls{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:7px;
+    margin-top:10px;
+}
+
+button{
+    width:58px;
+    height:52px;
+    border-radius:12px;
+    border:1px solid #ffd700;
+    background:#171221;
+    color:white;
+    font-size:22px;
+    font-weight:bold;
+    touch-action:none;
+    user-select:none;
+    cursor:pointer;
+}
+
+button:active{
+    transform:scale(.9);
+    background:#3b2945;
+}
+
+.attack{
+    width:85px;
+    background:#6c1725;
+    border-color:#ff5964;
+}
+
+.hint{
+    text-align:center;
+    color:#aaa;
+    font-size:12px;
+    margin-top:7px;
+}
+
+/* OVERLAY */
+
+.overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.82);
+    display:none;
+    justify-content:center;
+    align-items:center;
+    z-index:20;
+}
+
+.panel{
+    width:90%;
+    max-width:380px;
+    background:#151020;
+    border:2px solid #ffd700;
+    border-radius:18px;
+    padding:28px;
+    text-align:center;
+    box-shadow:0 0 30px rgba(255,215,0,.3);
+}
+
+.panel h2{
+    color:#ffd700;
+    margin-bottom:12px;
+    font-size:28px;
+}
+
+.panel p{
+    margin:8px 0 20px;
+    color:#ddd;
+    line-height:1.5;
+}
+
+.panel button{
+    width:auto;
+    height:auto;
+    padding:11px 25px;
+    background:#ffd700;
+    color:#111;
+    border:none;
+}
+
+.panel button:hover{
+    background:#fff0a0;
+}
+
+/* MOBILE */
+
+@media(max-width:600px){
+
+    .hud{
+        grid-template-columns:repeat(3,1fr);
+    }
+
+    canvas{
+        min-height:300px;
+    }
+
+    .controls{
+        flex-wrap:wrap;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="game">
+
+<h1>🏰 LOST KINGDOM</h1>
+
+<!-- MAIN MENU BUTTON -->
+<button id="mainMenu" class="main-menu">
+    🏠 MAIN MENU
+</button>
+
+<div class="hud">
+
+<div class="box">
+LEVEL
+<span id="level">1</span>
+</div>
+
+<div class="box">
+SCORE
+<span id="score">0</span>
+</div>
+
+<div class="box">
+❤️ HEALTH
+<span id="health">100</span>
+</div>
+
+<div class="box">
+ENEMIES
+<span id="enemies">3</span>
+</div>
+
+<div class="box">
+💰 TREASURE
+<span id="treasure">0/3</span>
+</div>
+
+</div>
+
+<div class="canvasBox">
+<canvas id="canvas" width="800" height="500"></canvas>
+</div>
+
+<div class="controls">
+
+<button id="left">◀</button>
+<button id="up">▲</button>
+<button id="down">▼</button>
+<button id="right">▶</button>
+
+<button class="attack" id="attack">
+    ⚔️
+</button>
+
+</div>
+
+<div class="hint">
+WASD / Arrow Keys = Move &nbsp; | &nbsp; SPACE = Attack
+</div>
+
+</div>
+
+
+<!-- GAME OVER / LEVEL COMPLETE -->
+
+<div class="overlay" id="overlay">
+
+<div class="panel">
+
+<h2 id="message">
+    LEVEL COMPLETE!
+</h2>
+
+<p id="result">
+    Well Done Warrior!
+</p>
+
+<button id="next">
+    NEXT LEVEL ➜
+</button>
+
+</div>
+
+</div>
+
+
+<script>
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const levelText = document.getElementById("level");
+const scoreText = document.getElementById("score");
+const healthText = document.getElementById("health");
+const enemyText = document.getElementById("enemies");
+const treasureText = document.getElementById("treasure");
+
+const overlay = document.getElementById("overlay");
+const message = document.getElementById("message");
+const result = document.getElementById("result");
+const nextBtn = document.getElementById("next");
+const mainMenu = document.getElementById("mainMenu");
+
+
+/* =========================
+   GAME VARIABLES
+========================= */
+
+let keys = {};
+
+let level = 1;
+let score = 0;
+let health = 100;
+
+let enemies = [];
+let treasures = [];
+
+let treasureCount = 0;
+
+let attacking = false;
+let attackTimer = 0;
+
+let levelChanging = false;
+
+
+/* =========================
+   PLAYER
+========================= */
+
+const player = {
+
+    x:80,
+    y:250,
+
+    width:36,
+    height:54,
+
+    speed:4,
+
+    direction:1
+};
+
+
+/* =========================
+   LEVEL DATA
+========================= */
+
+const levels = {
+
+1:{
+    name:"Green Forest",
+    enemyCount:3,
+    treasure:3,
+    enemyHP:2,
+    enemySpeed:1.1,
+    boss:false
+},
+
+2:{
+    name:"Dark Castle",
+    enemyCount:4,
+    treasure:4,
+    enemyHP:3,
+    enemySpeed:1.3,
+    boss:false
+},
+
+3:{
+    name:"Shadow Valley",
+    enemyCount:5,
+    treasure:5,
+    enemyHP:4,
+    enemySpeed:1.5,
+    boss:false
+},
+
+4:{
+    name:"Demon Fortress",
+    enemyCount:6,
+    treasure:5,
+    enemyHP:5,
+    enemySpeed:1.7,
+    boss:false
+},
+
+5:{
+    name:"Dragon Kingdom",
+    enemyCount:4,
+    treasure:3,
+    enemyHP:8,
+    enemySpeed:1.4,
+    boss:true
+}
+
+};
+
+
+/* =========================
+   MAIN MENU
+========================= */
+
+mainMenu.addEventListener("click",()=>{
+
+    window.location.href="../index.html";
+
+});
+
+
+/* =========================
+   KEYBOARD CONTROLS
+========================= */
+
+document.addEventListener("keydown",(e)=>{
+
+    keys[e.key.toLowerCase()] = true;
+
+    if(e.code === "Space"){
+
+        e.preventDefault();
+
+        attack();
+    }
+
+});
+
+
+document.addEventListener("keyup",(e)=>{
+
+    keys[e.key.toLowerCase()] = false;
+
+});
+
+
+/* =========================
+   MOBILE BUTTONS
+========================= */
+
+function button(id,key){
+
+    const b = document.getElementById(id);
+
+    b.addEventListener("pointerdown",(e)=>{
+
+        e.preventDefault();
+
+        keys[key] = true;
+
+    });
+
+    b.addEventListener("pointerup",(e)=>{
+
+        e.preventDefault();
+
+        keys[key] = false;
+
+    });
+
+    b.addEventListener("pointerleave",()=>{
+
+        keys[key] = false;
+
+    });
+
+    b.addEventListener("pointercancel",()=>{
+
+        keys[key] = false;
+
+    });
+
+}
+
+
+button("left","left");
+button("right","right");
+button("up","up");
+button("down","down");
+
+
+document.getElementById("attack")
+.addEventListener("pointerdown",(e)=>{
+
+    e.preventDefault();
+
+    attack();
+
+});
+
+
+/* =========================
+   START LEVEL
+========================= */
+
+function startLevel(){
+
+    const data = levels[level];
+
+    health = 100;
+
+    treasureCount = 0;
+
+    player.x = 80;
+    player.y = 250;
+
+    enemies = [];
+    treasures = [];
+
+    levelChanging = false;
+
+    levelText.textContent = level;
+    healthText.textContent = health;
+
+    treasureText.textContent =
+        "0/" + data.treasure;
+
+    createTreasures(data.treasure);
+
+    createEnemies(data);
+
+    enemyText.textContent =
+        enemies.length;
+
+    overlay.style.display = "none";
+
+}
+
+
+/* =========================
+   CREATE TREASURES
+========================= */
+
+function createTreasures(count){
+
+    const positions = [
+
+        [180,100],
+        [600,100],
+        [700,360],
+        [350,400],
+        [520,250]
+
+    ];
+
+    for(let i=0;i<count;i++){
+
+        treasures.push({
+
+            x:positions[i][0],
+            y:positions[i][1],
+
+            got:false
+
+        });
+
+    }
+
+}
+
+
+/* =========================
+   CREATE ENEMIES
+========================= */
+
+function createEnemies(data){
+
+    for(let i=0;i<data.enemyCount;i++){
+
+        enemies.push({
+
+            x:300 + (i%3)*150,
+
+            y:100 + (i%2)*230,
+
+            width:
+                data.boss && i===0
+                ?70
+                :42,
+
+            height:
+                data.boss && i===0
+                ?70
+                :42,
+
+            hp:data.enemyHP,
+
+            maxHP:data.enemyHP,
+
+            speed:data.enemySpeed,
+
+            dir:i%2===0 ? 1 : -1,
+
+            boss:data.boss && i===0,
+
+            hitCooldown:0,
+
+            dead:false
+
+        });
+
+    }
+
+}
+
+
+/* =========================
+   PLAYER MOVEMENT
+========================= */
+
+function updatePlayer(){
+
+    if(levelChanging)
+        return;
+
+    if(
+        keys["arrowleft"] ||
+        keys["a"] ||
+        keys["left"]
+    ){
+
+        player.x -= player.speed;
+
+        player.direction = -1;
+    }
+
+
+    if(
+        keys["arrowright"] ||
+        keys["d"] ||
+        keys["right"]
+    ){
+
+        player.x += player.speed;
+
+        player.direction = 1;
+    }
+
+
+    if(
+        keys["arrowup"] ||
+        keys["w"] ||
+        keys["up"]
+    ){
+
+        player.y -= player.speed;
+    }
+
+
+    if(
+        keys["arrowdown"] ||
+        keys["s"] ||
+        keys["down"]
+    ){
+
+        player.y += player.speed;
+    }
+
+
+    player.x =
+        Math.max(
+            20,
+            Math.min(744,player.x)
+        );
+
+
+    player.y =
+        Math.max(
+            20,
+            Math.min(425,player.y)
+        );
+
+}
+
+
+/* =========================
+   ATTACK
+========================= */
+
+function attack(){
+
+    if(levelChanging)
+        return;
+
+    if(attacking)
+        return;
+
+    attacking = true;
+
+    attackTimer = 12;
+
+
+    enemies.forEach(enemy=>{
+
+        if(enemy.hp <= 0)
+            return;
+
+
+        const dx =
+            enemy.x - player.x;
+
+        const dy =
+            enemy.y - player.y;
+
+
+        const distance =
+            Math.sqrt(
+                dx*dx + dy*dy
+            );
+
+
+        const correctDirection =
+
+            (
+                player.direction === 1 &&
+                dx > -20
+            )
+
+            ||
+
+            (
+                player.direction === -1 &&
+                dx < 20
+            );
+
+
+        if(
+            distance < 85 &&
+            correctDirection
+        ){
+
+            enemy.hp--;
+
+            score += 50;
+
+            scoreText.textContent =
+                score;
+
+
+            if(enemy.hp <= 0){
+
+                score += 100;
+
+                scoreText.textContent =
+                    score;
+
+                enemy.dead = true;
+
+            }
+
+        }
+
+    });
+
+}
+
+
+/* =========================
+   ATTACK TIMER
+========================= */
+
+function updateAttack(){
+
+    if(attackTimer > 0){
+
+        attackTimer--;
+
+    }else{
+
+        attacking = false;
+
+    }
+
+}
+
+
+/* =========================
+   ENEMY UPDATE
+========================= */
+
+function updateEnemies(){
+
+    if(levelChanging)
+        return;
+
+
+    enemies.forEach(enemy=>{
+
+        if(enemy.dead)
+            return;
+
+
+        enemy.x +=
+            enemy.speed * enemy.dir;
+
+
+        if(
+            enemy.x < 250 ||
+            enemy.x > 730
+        ){
+
+            enemy.dir *= -1;
+
+        }
+
+
+        const dx =
+            player.x - enemy.x;
+
+        const dy =
+            player.y - enemy.y;
+
+
+        const distance =
+            Math.sqrt(
+                dx*dx + dy*dy
+            );
+
+
+        if(distance < 48){
+
+            if(enemy.hitCooldown <= 0){
+
+                health -=
+                    enemy.boss
+                    ? 8
+                    : 4;
+
+
+                if(health < 0)
+                    health = 0;
+
+
+                healthText.textContent =
+                    health;
+
+
+                enemy.hitCooldown = 40;
+
+
+                player.x -=
+                    enemy.dir * 15;
+
+
+                if(health <= 0){
+
+                    gameOver();
+
+                }
+
+            }
+
+        }
+
+
+        if(enemy.hitCooldown > 0){
+
+            enemy.hitCooldown--;
+
+        }
+
+    });
+
+
+    enemies =
+        enemies.filter(
+            e=>!e.dead
+        );
+
+
+    enemyText.textContent =
+        enemies.length;
+
+
+    checkLevelComplete();
+
+}
+
+
+/* =========================
+   TREASURE UPDATE
+========================= */
+
+function updateTreasures(){
+
+    if(levelChanging)
+        return;
+
+
+    treasures.forEach(t=>{
+
+        if(t.got)
+            return;
+
+
+        const dx =
+            player.x - t.x;
+
+        const dy =
+            player.y - t.y;
+
+
+        const distance =
+            Math.sqrt(
+                dx*dx + dy*dy
+            );
+
+
+        if(distance < 40){
+
+            t.got = true;
+
+            treasureCount++;
+
+            score += 100;
+
+            scoreText.textContent =
+                score;
+
+
+            treasureText.textContent =
+                treasureCount +
+                "/" +
+                levels[level].treasure;
+
+        }
+
+    });
+
+
+    checkLevelComplete();
+
+}
+
+
+/* =========================
+   CHECK LEVEL COMPLETE
+========================= */
+
+function checkLevelComplete(){
+
+    if(levelChanging)
+        return;
+
+
+    if(
+        enemies.length === 0 &&
+        treasureCount >=
+        levels[level].treasure
+    ){
+
+        completeLevel();
+
+    }
+
+}
+
+
+/* =========================
+   LEVEL COMPLETE
+========================= */
+
+function completeLevel(){
+
+    if(levelChanging)
+        return;
+
+
+    levelChanging = true;
+
+
+    if(level < 5){
+
+        message.textContent =
+            "🏆 LEVEL " +
+            level +
+            " COMPLETE!";
+
+
+        result.textContent =
+            "Score: " +
+            score +
+            " | Next Level: " +
+            (level + 1);
+
+
+        nextBtn.textContent =
+            "NEXT LEVEL ➜";
+
+    }
+
+    else{
+
+        message.textContent =
+            "👑 KINGDOM SAVED!";
+
+
+        result.textContent =
+            "Final Score: " +
+            score +
+            " — You completed all 5 levels!";
+
+
+        nextBtn.textContent =
+            "PLAY AGAIN 🔄";
+
+    }
+
+
+    overlay.style.display =
+        "flex";
+
+}
+
+
+/* =========================
+   NEXT LEVEL / PLAY AGAIN
+========================= */
+
+nextBtn.addEventListener("click",()=>{
+
+    if(level < 5){
+
+        level++;
+
+        startLevel();
+
+    }
+
+    else{
+
+        level = 1;
+
+        score = 0;
+
+        scoreText.textContent =
+            score;
+
+        startLevel();
+
+    }
+
+});
+
+
+/* =========================
+   GAME OVER
+========================= */
+
+function gameOver(){
+
+    if(levelChanging)
+        return;
+
+
+    levelChanging = true;
+
+
+    message.textContent =
+        "💀 GAME OVER";
+
+
+    result.textContent =
+        "Score: " +
+        score +
+        " | You reached Level " +
+        level;
+
+
+    nextBtn.textContent =
+        "TRY AGAIN 🔄";
+
+
+    overlay.style.display =
+        "flex";
+
+}
+
+
+/* =========================
+   BACKGROUND
+========================= */
+
+function background(){
+
+    const data =
+        levels[level];
+
+
+    let bg = "#19351d";
+
+
+    if(level === 2)
+        bg = "#171525";
+
+
+    if(level === 3)
+        bg = "#211525";
+
+
+    if(level === 4)
+        bg = "#251315";
+
+
+    if(level === 5)
+        bg = "#160b0b";
+
+
+    ctx.fillStyle = bg;
+
+    ctx.fillRect(
+        0,
+        0,
+        800,
+        500
+    );
+
+
+    /* GROUND */
+
+    ctx.fillStyle =
+        level === 5
+        ? "#321515"
+        : "#315326";
+
+
+    for(
+        let x=0;
+        x<800;
+        x+=40
+    ){
+
+        for(
+            let y=0;
+            y<500;
+            y+=40
+        ){
+
+            ctx.fillRect(
+                x+10,
+                y+15,
+                3,
+                7
+            );
+
+        }
+
+    }
+
+
+    /* PATH */
+
+    ctx.fillStyle =
+        "#695338";
+
+
+    ctx.beginPath();
+
+    ctx.moveTo(0,220);
+
+    ctx.lineTo(800,180);
+
+    ctx.lineTo(800,320);
+
+    ctx.lineTo(0,350);
+
+    ctx.closePath();
+
+    ctx.fill();
+
+
+    /* CASTLE */
+
+    ctx.fillStyle =
+        level >= 4
+        ? "#46282d"
+        : "#555563";
+
+
+    ctx.fillRect(
+        330,
+        55,
+        140,
+        85
+    );
+
+
+    ctx.fillRect(
+        305,
+        30,
+        40,
+        110
+    );
+
+
+    ctx.fillRect(
+        455,
+        30,
+        40,
+        110
+    );
+
+
+    /* TOWER TOPS */
+
+    ctx.fillStyle =
+        "#8b8b99";
+
+
+    ctx.beginPath();
+
+    ctx.moveTo(300,30);
+
+    ctx.lineTo(325,5);
+
+    ctx.lineTo(350,30);
+
+    ctx.closePath();
+
+    ctx.fill();
+
+
+    ctx.beginPath();
+
+    ctx.moveTo(450,30);
+
+    ctx.lineTo(475,5);
+
+    ctx.lineTo(500,30);
+
+    ctx.closePath();
+
+    ctx.fill();
+
+
+    /* DOOR */
+
+    ctx.fillStyle =
+        "#211719";
+
+
+    ctx.fillRect(
+        385,
+        90,
+        30,
+        50
+    );
+
+
+    /* TREES / ROCKS */
+
+    if(level <= 3){
+
+        tree(100,100);
+        tree(700,100);
+        tree(100,420);
+        tree(700,420);
+
+    }
+
+    else{
+
+        rock(100,100);
+        rock(700,100);
+        rock(100,420);
+        rock(700,420);
+
+    }
+
+
+    /* LEVEL NAME */
+
+    ctx.fillStyle =
+        "rgba(255,215,0,.8)";
+
+    ctx.font =
+        "bold 16px Arial";
+
+
+    ctx.fillText(
+        data.name,
+        20,
+        30
+    );
+
+}
+
+
+/* =========================
+   TREE
+========================= */
+
+function tree(x,y){
+
+    ctx.fillStyle =
+        "#704522";
+
+
+    ctx.fillRect(
+        x-8,
+        y+18,
+        16,
+        40
+    );
+
+
+    ctx.fillStyle =
+        "#0b601c";
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x,
+        y,
+        32,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    ctx.fillStyle =
+        "#16832a";
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x-15,
+        y-10,
+        20,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+}
+
+
+/* =========================
+   ROCK
+========================= */
+
+function rock(x,y){
+
+    ctx.fillStyle =
+        "#444";
+
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x-30,
+        y+20
+    );
+
+    ctx.lineTo(
+        x-20,
+        y-15
+    );
+
+    ctx.lineTo(
+        x+10,
+        y-30
+    );
+
+    ctx.lineTo(
+        x+32,
+        y+5
+    );
+
+    ctx.lineTo(
+        x+20,
+        y+30
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+}
+
+
+/* =========================
+   PLAYER DRAW
+========================= */
+
+function drawPlayer(){
+
+    const x = player.x;
+    const y = player.y;
+
+
+    /* SHADOW */
+
+    ctx.fillStyle =
+        "rgba(0,0,0,.4)";
+
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+        x+18,
+        y+51,
+        23,
+        7,
+        0,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /* CAPE */
+
+    ctx.fillStyle =
+        "#791c3d";
+
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x+5,
+        y+22
+    );
+
+    ctx.lineTo(
+        x-6,
+        y+50
+    );
+
+    ctx.lineTo(
+        x+35,
+        y+50
+    );
+
+    ctx.lineTo(
+        x+29,
+        y+22
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+
+    /* ARMOR */
+
+    ctx.fillStyle =
+        "#2678bd";
+
+
+    ctx.shadowColor =
+        "#00d9ff";
+
+    ctx.shadowBlur = 12;
+
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+        x+5,
+        y+20,
+        26,
+        29,
+        7
+    );
+
+    ctx.fill();
+
+
+    ctx.shadowBlur = 0;
+
+
+    /* HEAD */
+
+    ctx.fillStyle =
+        "#efb078";
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x+18,
+        y+13,
+        12,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /* HAIR */
+
+    ctx.fillStyle =
+        "#301810";
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x+18,
+        y+9,
+        12,
+        Math.PI,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /* HELMET */
+
+    ctx.strokeStyle =
+        "#e9f7ff";
+
+    ctx.lineWidth = 3;
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x+18,
+        y+11,
+        13,
+        Math.PI,
+        Math.PI*2
+    );
+
+    ctx.stroke();
+
+
+    /* EYES */
+
+    ctx.fillStyle =
+        "#111";
+
+
+    ctx.fillRect(
+        x+12,
+        y+12,
+        3,
+        3
+    );
+
+    ctx.fillRect(
+        x+21,
+        y+12,
+        3,
+        3
+    );
+
+
+    /* SWORD */
+
+    ctx.strokeStyle =
+        "#f5fbff";
+
+    ctx.lineWidth = 5;
+
+
+    ctx.beginPath();
+
+
+    if(player.direction === 1){
+
+        ctx.moveTo(
+            x+30,
+            y+30
+        );
+
+        ctx.lineTo(
+            x+50,
+            attacking
+            ? y+8
+            : y+15
+        );
+
+    }
+
+    else{
+
+        ctx.moveTo(
+            x+5,
+            y+30
+        );
+
+        ctx.lineTo(
+            x-15,
+            attacking
+            ? y+8
+            : y+15
+        );
+
+    }
+
+
+    ctx.stroke();
+
+
+    /* ATTACK GLOW */
+
+    if(attacking){
+
+        ctx.strokeStyle =
+            "#ffe66d";
+
+        ctx.lineWidth = 6;
+
+
+        ctx.beginPath();
+
+
+        if(player.direction === 1){
+
+            ctx.arc(
+                x+25,
+                y+27,
+                45,
+                -1.2,
+                .8
+            );
+
+        }
+
+        else{
+
+            ctx.arc(
+                x+10,
+                y+27,
+                45,
+                2.3,
+                4.3
+            );
+
+        }
+
+
+        ctx.stroke();
+
+    }
+
+}
+
+
+/* =========================
+   TREASURE DRAW
+========================= */
+
+function drawTreasure(t){
+
+    if(t.got)
+        return;
+
+
+    ctx.shadowColor =
+        "#ffd700";
+
+    ctx.shadowBlur = 18;
+
+
+    ctx.fillStyle =
+        "#875517";
+
+
+    ctx.fillRect(
+        t.x,
+        t.y+8,
+        28,
+        19
+    );
+
+
+    ctx.fillStyle =
+        "#ffd700";
+
+
+    ctx.fillRect(
+        t.x,
+        t.y+2,
+        28,
+        8
+    );
+
+
+    ctx.fillStyle =
+        "#fff3a3";
+
+
+    ctx.fillRect(
+        t.x+11,
+        t.y+10,
+        6,
+        9
+    );
+
+
+    ctx.shadowBlur = 0;
+
+}
+
+
+/* =========================
+   ENEMY DRAW
+========================= */
+
+function drawEnemy(e){
+
+    const x = e.x;
+    const y = e.y;
+
+    const size =
+        e.boss
+        ? 1.7
+        : 1;
+
+
+    /* SHADOW */
+
+    ctx.fillStyle =
+        "rgba(0,0,0,.4)";
+
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+        x+20*size,
+        y+40*size,
+        23*size,
+        7*size,
+        0,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /* BODY */
+
+    ctx.fillStyle =
+        e.boss
+        ? "#631128"
+        : "#78202e";
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x+20*size,
+        y+25*size,
+        18*size,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /* HEAD */
+
+    ctx.fillStyle =
+        e.boss
+        ? "#a52d35"
+        : "#a84b3d";
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x+20*size,
+        y+13*size,
+        13*size,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /* HORNS */
+
+    ctx.fillStyle =
+        "#ddd";
+
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x+10*size,
+        y+7*size
+    );
+
+    ctx.lineTo(
+        x+3*size,
+        y-8*size
+    );
+
+    ctx.lineTo(
+        x+16*size,
+        y+4*size
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x+30*size,
+        y+7*size
+    );
+
+    ctx.lineTo(
+        x+37*size,
+        y-8*size
+    );
+
+    ctx.lineTo(
+        x+24*size,
+        y+4*size
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+
+    /* EYES */
+
+    ctx.fillStyle =
+        "#ffff00";
+
+
+    ctx.fillRect(
+        x+12*size,
+        y+12*size,
+        5*size,
+        4*size
+    );
+
+
+    ctx.fillRect(
+        x+23*size,
+        y+12*size,
+        5*size,
+        4*size
+    );
+
+
+    /* HP BAR */
+
+    const barWidth =
+        45*size;
+
+
+    ctx.fillStyle =
+        "#250000";
+
+
+    ctx.fillRect(
+        x-2,
+        y-18,
+        barWidth,
+        6
+    );
+
+
+    ctx.fillStyle =
+        "#ff3030";
+
+
+    ctx.fillRect(
+        x-2,
+        y-18,
+        barWidth *
+        (e.hp/e.maxHP),
+        6
+    );
+
+
+    /* BOSS TEXT */
+
+    if(e.boss){
+
+        ctx.fillStyle =
+            "#ffd700";
+
+        ctx.font =
+            "bold 12px Arial";
+
+
+        ctx.fillText(
+            "BOSS",
+            x+3,
+            y-23
+        );
+
+    }
+
+}
+
+
+/* =========================
+   DRAW GAME
+========================= */
+
+function draw(){
+
+    background();
+
+
+    treasures.forEach(
+        drawTreasure
+    );
+
+
+    enemies.forEach(
+        drawEnemy
+    );
+
+
+    drawPlayer();
+
+}
+
+
+/* =========================
+   GAME LOOP
+========================= */
+
+function loop(){
+
+    updatePlayer();
+
+    updateAttack();
+
+    updateEnemies();
+
+    updateTreasures();
+
+    draw();
+
+    requestAnimationFrame(loop);
+
+}
+
+
+/* =========================
+   START GAME
+========================= */
+
+startLevel();
+
+loop();
+
+</script>
+
+</body>
+</html>

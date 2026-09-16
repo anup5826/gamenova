@@ -1,0 +1,2013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+
+<title>Turbo Drive - Bike Racing</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    background:#050505;
+    color:white;
+    font-family:Arial,sans-serif;
+    overflow:hidden;
+    touch-action:none;
+}
+
+.game{
+    width:100vw;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+}
+
+.top{
+    width:min(1000px,96vw);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:9px 13px;
+    background:#111;
+    border:1px solid #333;
+    border-radius:10px 10px 0 0;
+    font-size:14px;
+}
+
+.logo{
+    color:#ff3b30;
+    font-weight:bold;
+    font-size:16px;
+}
+
+.stats{
+    display:flex;
+    gap:14px;
+}
+
+canvas{
+    width:min(1000px,96vw);
+    height:auto;
+    max-height:68vh;
+    display:block;
+    background:#222;
+    border-left:1px solid #333;
+    border-right:1px solid #333;
+}
+
+.bottom{
+    width:min(1000px,96vw);
+    background:#111;
+    border:1px solid #333;
+    border-radius:0 0 10px 10px;
+    padding:7px;
+    text-align:center;
+}
+
+.main-menu{
+    display:inline-flex;
+    text-decoration:none;
+    color:#ff3b30;
+    border:1px solid #ff3b30;
+    background:#111;
+    border-radius:8px;
+    padding:7px 18px;
+    margin-bottom:5px;
+    font-weight:bold;
+}
+
+.controls{
+    display:flex;
+    justify-content:center;
+    gap:8px;
+    flex-wrap:wrap;
+}
+
+.btn{
+    width:52px;
+    height:40px;
+    border:1px solid #555;
+    background:#222;
+    color:white;
+    border-radius:8px;
+    font-size:19px;
+}
+
+.boost{
+    width:100px;
+    background:#742000;
+    border-color:#ff5722;
+}
+
+.overlay{
+    position:fixed;
+    inset:0;
+    display:none;
+    justify-content:center;
+    align-items:center;
+    background:rgba(0,0,0,.84);
+    z-index:10;
+}
+
+.panel{
+    width:min(430px,90vw);
+    background:#111;
+    border:1px solid #ff3b30;
+    border-radius:15px;
+    padding:25px;
+    text-align:center;
+}
+
+.panel h1{
+    color:#ff3b30;
+    margin-bottom:12px;
+}
+
+.panel p{
+    color:#ddd;
+    line-height:1.7;
+}
+
+.panel button{
+    margin-top:16px;
+    padding:11px 25px;
+    border:0;
+    border-radius:8px;
+    background:#ff3b30;
+    color:white;
+    font-weight:bold;
+    font-size:16px;
+}
+
+@media(max-width:600px){
+
+    .top{
+        font-size:12px;
+    }
+
+    .logo{
+        font-size:13px;
+    }
+
+    .stats{
+        gap:7px;
+    }
+
+    canvas{
+        max-height:58vh;
+    }
+
+    .btn{
+        width:45px;
+        height:38px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="game">
+
+    <div class="top">
+
+        <div class="logo">
+            🏍️ TURBO DRIVE
+        </div>
+
+        <div class="stats">
+
+            <span>
+                📏 <b id="distance">0</b>m
+            </span>
+
+            <span>
+                ❤️ <b id="health">100</b>
+            </span>
+
+            <span>
+                🏆 <b id="score">0</b>
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <canvas id="canvas" width="1000" height="560"></canvas>
+
+
+    <div class="bottom">
+
+        <a class="main-menu" href="../index.html">
+            🏠 MAIN MENU
+        </a>
+
+        <div class="controls">
+
+            <button class="btn" id="left">
+                ⬅️
+            </button>
+
+            <button class="btn" id="right">
+                ➡️
+            </button>
+
+            <button class="btn" id="up">
+                ⬆️
+            </button>
+
+            <button class="btn" id="down">
+                ⬇️
+            </button>
+
+            <button class="btn boost" id="boost">
+                🔥 BOOST
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="overlay" id="overlay">
+
+    <div class="panel">
+
+        <h1 id="panelTitle">
+            💥 GAME OVER
+        </h1>
+
+        <p id="panelText"></p>
+
+        <button id="panelButton">
+            RESTART 🔄
+        </button>
+
+    </div>
+
+</div>
+
+
+<script>
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const distanceUI = document.getElementById("distance");
+const healthUI = document.getElementById("health");
+const scoreUI = document.getElementById("score");
+
+const overlay = document.getElementById("overlay");
+const panelTitle = document.getElementById("panelTitle");
+const panelText = document.getElementById("panelText");
+const panelButton = document.getElementById("panelButton");
+
+
+let running = true;
+
+let score = 0;
+let distance = 0;
+let roadOffset = 0;
+
+let spawnTimer = 0;
+let crashCooldown = 0;
+
+let keys = {};
+
+let enemies = [];
+
+
+/* FOUR ROAD LANES */
+
+const lanes = [
+    335,
+    445,
+    555,
+    665
+];
+
+
+/* PLAYER BIKE */
+
+const player = {
+
+    x:500,
+
+    y:450,
+
+    width:42,
+
+    height:110,
+
+    speed:6,
+
+    health:100,
+
+    boost:false,
+
+    boostTime:0
+
+};
+
+
+/* KEYBOARD */
+
+window.addEventListener("keydown", e => {
+
+    keys[e.key.toLowerCase()] = true;
+
+    if(e.key === " "){
+
+        e.preventDefault();
+
+        activateBoost();
+
+    }
+
+});
+
+
+window.addEventListener("keyup", e => {
+
+    keys[e.key.toLowerCase()] = false;
+
+});
+
+
+/* DIFFICULTY BASED ON DISTANCE */
+
+function getDifficulty(){
+
+    let speed =
+        3 + Math.min(distance / 1000, 6);
+
+    speed = Math.min(speed,9);
+
+
+    let traffic =
+        3 + Math.floor(distance / 850);
+
+    traffic = Math.min(traffic,8);
+
+
+    let spawnGap =
+        105 - Math.floor(distance / 230);
+
+    spawnGap = Math.max(35,spawnGap);
+
+
+    return {
+        speed,
+        traffic,
+        spawnGap
+    };
+
+}
+
+
+/* ENEMY COLORS */
+
+function randomColor(){
+
+    const colors = [
+
+        "#1976d2",
+        "#7b1fa2",
+        "#00897b",
+        "#f57c00",
+        "#455a64",
+        "#c2185b",
+        "#1565c0",
+        "#6a1b9a"
+
+    ];
+
+    return colors[
+        Math.floor(Math.random()*colors.length)
+    ];
+
+}
+
+
+/* CHECK LANE */
+
+function laneIsSafe(lane){
+
+    for(const e of enemies){
+
+        if(
+            e.lane === lane &&
+            e.y < 200
+        ){
+
+            return false;
+
+        }
+
+    }
+
+    return true;
+
+}
+
+
+/* CREATE ENEMY */
+
+function createEnemy(){
+
+    const difficulty = getDifficulty();
+
+
+    const safeLanes =
+        lanes.filter(laneIsSafe);
+
+
+    if(safeLanes.length === 0){
+
+        return;
+
+    }
+
+
+    const lane =
+        safeLanes[
+            Math.floor(
+                Math.random()*safeLanes.length
+            )
+        ];
+
+
+    const boss =
+        distance > 5000 &&
+        Math.random() < 0.08;
+
+
+    enemies.push({
+
+        lane:lane,
+
+        x:lane,
+
+        y:-130,
+
+        width:boss ? 72 : 58,
+
+        height:boss ? 110 : 92,
+
+        speed:
+            difficulty.speed +
+            Math.random()*1.5,
+
+        color:
+            boss ?
+            "#b71c1c" :
+            randomColor(),
+
+        boss:boss,
+
+        hit:false,
+
+        passed:false
+
+    });
+
+}
+
+
+/* BACKGROUND */
+
+function drawBackground(){
+
+    if(distance < 1200){
+
+        ctx.fillStyle="#72a9d8";
+
+    }
+
+    else if(distance < 2500){
+
+        ctx.fillStyle="#29384c";
+
+    }
+
+    else if(distance < 4000){
+
+        ctx.fillStyle="#d28a4a";
+
+    }
+
+    else if(distance < 6000){
+
+        ctx.fillStyle="#10172b";
+
+    }
+
+    else{
+
+        ctx.fillStyle="#160b16";
+
+    }
+
+
+    ctx.fillRect(
+        0,
+        0,
+        1000,
+        560
+    );
+
+
+    /* GRASS */
+
+    ctx.fillStyle="#18351f";
+
+    ctx.fillRect(
+        0,
+        0,
+        260,
+        560
+    );
+
+    ctx.fillRect(
+        740,
+        0,
+        260,
+        560
+    );
+
+
+    /* ROAD */
+
+    ctx.fillStyle="#292929";
+
+    ctx.fillRect(
+        260,
+        0,
+        480,
+        560
+    );
+
+
+    /* ROAD EDGES */
+
+    ctx.fillStyle="#eee";
+
+    ctx.fillRect(
+        260,
+        0,
+        8,
+        560
+    );
+
+    ctx.fillRect(
+        732,
+        0,
+        8,
+        560
+    );
+
+
+    /* LANE LINES */
+
+    for(const laneX of [
+        390,
+        500,
+        610
+    ]){
+
+        for(
+            let y=-100+roadOffset;
+            y<600;
+            y+=100
+        ){
+
+            ctx.fillRect(
+                laneX-3,
+                y,
+                6,
+                55
+            );
+
+        }
+
+    }
+
+
+    /* TREES */
+
+    for(
+        let y=-100+roadOffset;
+        y<600;
+        y+=130
+    ){
+
+        drawTree(150,y);
+
+        drawTree(
+            850,
+            y+60
+        );
+
+    }
+
+}
+
+
+/* TREE */
+
+function drawTree(x,y){
+
+    ctx.fillStyle="#5b3a20";
+
+    ctx.fillRect(
+        x-6,
+        y+15,
+        12,
+        35
+    );
+
+
+    ctx.fillStyle="#1d6b32";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x,
+        y,
+        28,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+}
+
+
+/* ===========================
+   PLAYER BIKE + RIDER
+   FACING UPWARD
+=========================== */
+
+function drawPlayer(){
+
+    ctx.save();
+
+    ctx.translate(
+        player.x,
+        player.y
+    );
+
+
+    /* SHADOW */
+
+    ctx.fillStyle="rgba(0,0,0,.45)";
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+        0,
+        8,
+        31,
+        55,
+        0,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /* BOOST FLAME - BEHIND */
+
+    if(player.boost){
+
+        ctx.fillStyle="#ff3d00";
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            -9,
+            42
+        );
+
+        ctx.lineTo(
+            0,
+            82
+        );
+
+        ctx.lineTo(
+            9,
+            42
+        );
+
+        ctx.closePath();
+
+        ctx.fill();
+
+
+        ctx.fillStyle="#ffd600";
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            -5,
+            43
+        );
+
+        ctx.lineTo(
+            0,
+            69
+        );
+
+        ctx.lineTo(
+            5,
+            43
+        );
+
+        ctx.closePath();
+
+        ctx.fill();
+
+    }
+
+
+    /* REAR WHEEL */
+
+    ctx.fillStyle="#050505";
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+        -8,
+        20,
+        16,
+        42,
+        8
+    );
+
+    ctx.fill();
+
+
+    /* REAR WHEEL HIGHLIGHT */
+
+    ctx.fillStyle="#555";
+
+    ctx.fillRect(
+        -2,
+        24,
+        4,
+        32
+    );
+
+
+    /* BIKE BODY */
+
+    ctx.fillStyle="#d71920";
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        0,
+        -40
+    );
+
+    ctx.lineTo(
+        17,
+        -12
+    );
+
+    ctx.lineTo(
+        14,
+        30
+    );
+
+    ctx.lineTo(
+        0,
+        44
+    );
+
+    ctx.lineTo(
+        -14,
+        30
+    );
+
+    ctx.lineTo(
+        -17,
+        -12
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+
+    /* BLACK CENTER */
+
+    ctx.fillStyle="#111";
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+        -9,
+        -10,
+        18,
+        43,
+        8
+    );
+
+    ctx.fill();
+
+
+    /* FRONT FAIRING */
+
+    ctx.fillStyle="#ff3131";
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        0,
+        -53
+    );
+
+    ctx.lineTo(
+        16,
+        -25
+    );
+
+    ctx.lineTo(
+        9,
+        5
+    );
+
+    ctx.lineTo(
+        -9,
+        5
+    );
+
+    ctx.lineTo(
+        -16,
+        -25
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+
+    /* HEADLIGHT */
+
+    ctx.fillStyle="#fff59d";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        0,
+        -40,
+        7,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /* FRONT WHEEL */
+
+    ctx.fillStyle="#050505";
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+        -7,
+        -58,
+        14,
+        38,
+        7
+    );
+
+    ctx.fill();
+
+
+    /* FRONT WHEEL CENTER */
+
+    ctx.fillStyle="#666";
+
+    ctx.fillRect(
+        -2,
+        -53,
+        4,
+        27
+    );
+
+
+    /* HANDLEBAR */
+
+    ctx.strokeStyle="#222";
+
+    ctx.lineWidth=5;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        -18,
+        -23
+    );
+
+    ctx.lineTo(
+        18,
+        -23
+    );
+
+    ctx.stroke();
+
+
+    /* RIDER BODY */
+
+    ctx.fillStyle="#151515";
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+        -14,
+        -35,
+        28,
+        35,
+        10
+    );
+
+    ctx.fill();
+
+
+    /* RIDER JACKET */
+
+    ctx.fillStyle="#263238";
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+        -12,
+        -34,
+        24,
+        27,
+        8
+    );
+
+    ctx.fill();
+
+
+    /* LEFT ARM */
+
+    ctx.strokeStyle="#b87355";
+
+    ctx.lineWidth=6;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        -9,
+        -28
+    );
+
+    ctx.lineTo(
+        -17,
+        -22
+    );
+
+    ctx.stroke();
+
+
+    /* RIGHT ARM */
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        9,
+        -28
+    );
+
+    ctx.lineTo(
+        17,
+        -22
+    );
+
+    ctx.stroke();
+
+
+    /* HANDS */
+
+    ctx.fillStyle="#d69a78";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        -18,
+        -22,
+        4,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        18,
+        -22,
+        4,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /* NECK */
+
+    ctx.fillStyle="#b87355";
+
+    ctx.fillRect(
+        -5,
+        -43,
+        10,
+        8
+    );
+
+
+    /* HEAD */
+
+    ctx.fillStyle="#b87355";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        0,
+        -55,
+        10,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /* HELMET */
+
+    ctx.fillStyle="#050505";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        0,
+        -58,
+        13,
+        Math.PI,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /* HELMET VISOR */
+
+    ctx.fillStyle="#00e5ff";
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+        -9,
+        -61,
+        18,
+        7,
+        3
+    );
+
+    ctx.fill();
+
+
+    /* BIKE SIDE LIGHTS */
+
+    ctx.fillStyle="#ffea00";
+
+    ctx.fillRect(
+        -17,
+        -2,
+        6,
+        8
+    );
+
+    ctx.fillRect(
+        11,
+        -2,
+        6,
+        8
+    );
+
+
+    ctx.restore();
+
+}
+
+
+/* ===========================
+   ENEMY CARS
+=========================== */
+
+function drawEnemy(e){
+
+    ctx.save();
+
+    ctx.translate(
+        e.x,
+        e.y
+    );
+
+
+    /* SHADOW */
+
+    ctx.fillStyle="rgba(0,0,0,.45)";
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+        0,
+        5,
+        e.width*.65,
+        e.height*.55,
+        0,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /* TYRES */
+
+    ctx.fillStyle="#080808";
+
+    ctx.fillRect(
+        -e.width/2-7,
+        -35,
+        9,
+        25
+    );
+
+    ctx.fillRect(
+        e.width/2-2,
+        -35,
+        9,
+        25
+    );
+
+    ctx.fillRect(
+        -e.width/2-7,
+        15,
+        9,
+        25
+    );
+
+    ctx.fillRect(
+        e.width/2-2,
+        15,
+        9,
+        25
+    );
+
+
+    /* CAR BODY */
+
+    ctx.fillStyle=e.color;
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+        -e.width/2,
+        -e.height/2,
+        e.width,
+        e.height,
+        12
+    );
+
+    ctx.fill();
+
+
+    /* WINDOWS */
+
+    ctx.fillStyle="#263238";
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+        -e.width*.35,
+        -25,
+        e.width*.7,
+        45,
+        8
+    );
+
+    ctx.fill();
+
+
+    /* WINDOW */
+
+    ctx.fillStyle="#142638";
+
+    ctx.fillRect(
+        -e.width*.28,
+        -19,
+        e.width*.56,
+        16
+    );
+
+
+    /* DRIVER HEAD */
+
+    ctx.fillStyle="#b87355";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        0,
+        -10,
+        e.boss ? 9 : 7,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /* DRIVER HELMET */
+
+    ctx.fillStyle="#ddd";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        0,
+        -13,
+        e.boss ? 11 : 8,
+        Math.PI,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /* LIGHTS */
+
+    ctx.fillStyle="#fff59d";
+
+    ctx.fillRect(
+        -e.width*.32,
+        e.height/2-15,
+        11,
+        6
+    );
+
+    ctx.fillRect(
+        e.width*.12,
+        e.height/2-15,
+        11,
+        6
+    );
+
+
+    /* BOSS */
+
+    if(e.boss){
+
+        ctx.fillStyle="#ffd740";
+
+        ctx.font="bold 15px Arial";
+
+        ctx.textAlign="center";
+
+        ctx.fillText(
+            "👑 ELITE",
+            0,
+            -e.height/2-13
+        );
+
+    }
+
+
+    ctx.restore();
+
+}
+
+
+/* PLAYER MOVEMENT */
+
+function movePlayer(){
+
+    let speed =
+        player.boost ?
+        10 :
+        player.speed;
+
+
+    if(
+        keys["a"] ||
+        keys["arrowleft"]
+    ){
+
+        player.x -= speed;
+
+    }
+
+
+    if(
+        keys["d"] ||
+        keys["arrowright"]
+    ){
+
+        player.x += speed;
+
+    }
+
+
+    if(
+        keys["w"] ||
+        keys["arrowup"]
+    ){
+
+        player.y -= speed*.65;
+
+    }
+
+
+    if(
+        keys["s"] ||
+        keys["arrowdown"]
+    ){
+
+        player.y += speed*.65;
+
+    }
+
+
+    player.x =
+        Math.max(
+            290,
+            Math.min(
+                710,
+                player.x
+            )
+        );
+
+
+    player.y =
+        Math.max(
+            300,
+            Math.min(
+                500,
+                player.y
+            )
+        );
+
+}
+
+
+/* COLLISION */
+
+function collision(a,b){
+
+    return (
+
+        Math.abs(a.x-b.x)
+        <
+        (a.width+b.width)/2-8
+
+        &&
+
+        Math.abs(a.y-b.y)
+        <
+        (a.height+b.height)/2-18
+
+    );
+
+}
+
+
+/* KEEP ENEMY CARS SEPARATED */
+
+function separateEnemies(){
+
+    for(
+        let i=0;
+        i<enemies.length;
+        i++
+    ){
+
+        for(
+            let j=i+1;
+            j<enemies.length;
+            j++
+        ){
+
+            const a=enemies[i];
+
+            const b=enemies[j];
+
+
+            if(a.lane===b.lane){
+
+                const minGap =
+                    (a.height+b.height)/2+15;
+
+                const gap =
+                    Math.abs(a.y-b.y);
+
+
+                if(gap<minGap){
+
+                    if(a.y<b.y){
+
+                        a.y =
+                            b.y-minGap;
+
+                    }
+
+                    else{
+
+                        b.y =
+                            a.y-minGap;
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+
+}
+
+
+/* ENEMY UPDATE */
+
+function updateEnemies(){
+
+    const difficulty =
+        getDifficulty();
+
+
+    enemies.forEach(e=>{
+
+        e.y += e.speed;
+
+
+        /* PASSED */
+
+        if(
+            e.y >
+            player.y+100
+            &&
+            !e.passed
+        ){
+
+            e.passed=true;
+
+            score +=
+                e.boss ?
+                100 :
+                25;
+
+        }
+
+
+        /* COLLISION */
+
+        if(
+            !e.hit &&
+            crashCooldown<=0 &&
+            collision(player,e)
+        ){
+
+            e.hit=true;
+
+            crashCooldown=55;
+
+
+            player.health -=
+                e.boss ?
+                35 :
+                20;
+
+
+            score =
+                Math.max(
+                    0,
+                    score-50
+                );
+
+
+            /* PUSH APART */
+
+            if(
+                player.x<e.x
+            ){
+
+                player.x-=35;
+
+                e.x+=35;
+
+            }
+
+            else{
+
+                player.x+=35;
+
+                e.x-=35;
+
+            }
+
+        }
+
+    });
+
+
+    separateEnemies();
+
+
+    /* REMOVE OLD CARS */
+
+    enemies =
+        enemies.filter(
+            e =>
+            e.y <
+            canvas.height+150
+        );
+
+
+    /* SPAWN */
+
+    spawnTimer--;
+
+
+    if(spawnTimer<=0){
+
+        if(
+            enemies.length <
+            difficulty.traffic
+        ){
+
+            createEnemy();
+
+        }
+
+
+        spawnTimer =
+            difficulty.spawnGap;
+
+    }
+
+}
+
+
+/* BOOST */
+
+function activateBoost(){
+
+    if(!running){
+
+        return;
+
+    }
+
+
+    if(player.boostTime<=0){
+
+        player.boost=true;
+
+        player.boostTime=75;
+
+    }
+
+}
+
+
+/* BOOST UPDATE */
+
+function updateBoost(){
+
+    if(player.boostTime>0){
+
+        player.boostTime--;
+
+    }
+
+    else{
+
+        player.boost=false;
+
+    }
+
+}
+
+
+/* GAME UPDATE */
+
+function updateGame(){
+
+    movePlayer();
+
+    updateEnemies();
+
+    updateBoost();
+
+
+    if(crashCooldown>0){
+
+        crashCooldown--;
+
+    }
+
+
+    /* DISTANCE */
+
+    distance +=
+        player.boost ?
+        .22 :
+        .12;
+
+
+    /* SCORE */
+
+    score +=
+        player.boost ?
+        2 :
+        1;
+
+
+    /* ROAD */
+
+    roadOffset +=
+        player.boost ?
+        13 :
+        7;
+
+
+    if(roadOffset>=100){
+
+        roadOffset=0;
+
+    }
+
+
+    /* HEALTH */
+
+    if(player.health<=0){
+
+        player.health=0;
+
+        gameOver();
+
+    }
+
+}
+
+
+/* UI */
+
+function updateUI(){
+
+    distanceUI.textContent =
+        Math.floor(distance);
+
+
+    healthUI.textContent =
+        Math.max(
+            0,
+            Math.floor(player.health)
+        );
+
+
+    scoreUI.textContent =
+        score;
+
+}
+
+
+/* GAME OVER */
+
+function gameOver(){
+
+    running=false;
+
+
+    panelTitle.textContent =
+        "💥 BIKE CRASHED!";
+
+
+    panelText.innerHTML =
+
+        `You survived
+        <b>${Math.floor(distance)} meters</b>.
+        <br><br>
+        Final Score:
+        <b>${score}</b>
+        <br><br>
+        Traffic Speed:
+        <b>${getDifficulty().speed.toFixed(1)}</b>`;
+
+
+    panelButton.textContent =
+        "RESTART 🔄";
+
+
+    panelButton.onclick =
+        restart;
+
+
+    overlay.style.display =
+        "flex";
+
+}
+
+
+/* RESTART */
+
+function restart(){
+
+    running=true;
+
+    score=0;
+
+    distance=0;
+
+    roadOffset=0;
+
+    spawnTimer=0;
+
+    crashCooldown=0;
+
+    enemies=[];
+
+
+    player.x=500;
+
+    player.y=450;
+
+    player.health=100;
+
+    player.boost=false;
+
+    player.boostTime=0;
+
+
+    overlay.style.display =
+        "none";
+
+
+    createEnemy();
+
+    createEnemy();
+
+    updateUI();
+
+}
+
+
+/* MOBILE BUTTONS */
+
+function holdButton(id,key){
+
+    const button =
+        document.getElementById(id);
+
+
+    button.addEventListener(
+        "pointerdown",
+        e => {
+
+            e.preventDefault();
+
+            keys[key]=true;
+
+        }
+    );
+
+
+    button.addEventListener(
+        "pointerup",
+        e => {
+
+            e.preventDefault();
+
+            keys[key]=false;
+
+        }
+    );
+
+
+    button.addEventListener(
+        "pointerleave",
+        () => {
+
+            keys[key]=false;
+
+        }
+    );
+
+
+    button.addEventListener(
+        "pointercancel",
+        () => {
+
+            keys[key]=false;
+
+        }
+    );
+
+}
+
+
+holdButton(
+    "left",
+    "arrowleft"
+);
+
+holdButton(
+    "right",
+    "arrowright"
+);
+
+holdButton(
+    "up",
+    "arrowup"
+);
+
+holdButton(
+    "down",
+    "arrowdown"
+);
+
+
+/* BOOST BUTTON */
+
+document
+    .getElementById("boost")
+    .addEventListener(
+        "pointerdown",
+        e => {
+
+            e.preventDefault();
+
+            activateBoost();
+
+        }
+    );
+
+
+/* CRASH EFFECT */
+
+function drawCrashEffect(){
+
+    if(crashCooldown>0){
+
+        ctx.fillStyle =
+            "rgba(255,50,30,.12)";
+
+        ctx.fillRect(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
+
+        ctx.fillStyle="#ff4444";
+
+        ctx.font=
+            "bold 24px Arial";
+
+        ctx.textAlign="center";
+
+        ctx.fillText(
+            "💥 CRASH!",
+            500,
+            100
+        );
+
+    }
+
+}
+
+
+/* MAIN GAME LOOP */
+
+function loop(){
+
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    drawBackground();
+
+
+    if(running){
+
+        updateGame();
+
+    }
+
+
+    /* ENEMIES */
+
+    enemies.forEach(
+        drawEnemy
+    );
+
+
+    /* PLAYER */
+
+    drawPlayer();
+
+
+    /* CRASH */
+
+    drawCrashEffect();
+
+
+    /* DISTANCE */
+
+    ctx.fillStyle=
+        "rgba(255,255,255,.9)";
+
+    ctx.font=
+        "bold 18px Arial";
+
+    ctx.textAlign="left";
+
+
+    ctx.fillText(
+        Math.floor(distance)+" M",
+        20,
+        30
+    );
+
+
+    /* TRAFFIC SPEED */
+
+    const difficulty =
+        getDifficulty();
+
+
+    ctx.font=
+        "bold 13px Arial";
+
+
+    ctx.fillText(
+        "TRAFFIC SPEED: "+
+        difficulty.speed.toFixed(1),
+        20,
+        50
+    );
+
+
+    updateUI();
+
+
+    requestAnimationFrame(loop);
+
+}
+
+
+/* START GAME */
+
+createEnemy();
+
+createEnemy();
+
+createEnemy();
+
+updateUI();
+
+loop();
+
+</script>
+
+</body>
+</html>

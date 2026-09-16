@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    >
+
+    <title>Cyber Hunter - GameNova</title>
+
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #03040b;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        /* =========================================
+           GAME WRAPPER
+        ========================================= */
+
+        .game-wrapper {
+            position: relative;
+
+            width: 100vw;
+            height: 100vh;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background:
+                radial-gradient(
+                    circle at center,
+                    rgba(0, 229, 255, 0.06),
+                    transparent 45%
+                ),
+                #03040b;
+        }
+
+        /* =========================================
+           CANVAS
+        ========================================= */
+
+        #gameCanvas {
+            display: block;
+
+            width: min(100vw, 900px);
+            height: min(100vh, 700px);
+
+            background: #050711;
+
+            border-left: 1px solid
+                rgba(0, 229, 255, 0.35);
+
+            border-right: 1px solid
+                rgba(255, 43, 214, 0.35);
+
+            box-shadow:
+                0 0 40px
+                rgba(0, 229, 255, 0.08);
+        }
+
+        /* =========================================
+           HUD
+        ========================================= */
+
+        .hud {
+            position: absolute;
+
+            top: 18px;
+            left: 50%;
+
+            transform: translateX(-50%);
+
+            width: min(850px, 94%);
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(4, 1fr);
+
+            gap: 10px;
+
+            z-index: 10;
+
+            pointer-events: none;
+        }
+
+        .hud-box {
+            min-height: 52px;
+
+            padding: 8px 12px;
+
+            border: 1px solid
+                rgba(0, 229, 255, 0.25);
+
+            border-radius: 8px;
+
+            background:
+                rgba(3, 8, 20, 0.78);
+
+            backdrop-filter: blur(8px);
+
+            text-align: center;
+        }
+
+        .hud-label {
+            display: block;
+
+            color: #73829e;
+
+            font-size: 8px;
+            font-weight: 900;
+
+            letter-spacing: 1.3px;
+        }
+
+        .hud-value {
+            display: block;
+
+            margin-top: 4px;
+
+            color: #00e5ff;
+
+            font-size: 17px;
+            font-weight: 1000;
+
+            text-shadow:
+                0 0 10px
+                rgba(0, 229, 255, 0.6);
+        }
+
+        /* =========================================
+           HEALTH
+        ========================================= */
+
+        .health-panel {
+            position: absolute;
+
+            left: 50%;
+            bottom: 22px;
+
+            transform: translateX(-50%);
+
+            width: min(420px, 70%);
+
+            z-index: 15;
+        }
+
+        .health-title {
+            display: flex;
+
+            justify-content: space-between;
+
+            margin-bottom: 6px;
+
+            color: #a7b4ca;
+
+            font-size: 9px;
+            font-weight: 900;
+
+            letter-spacing: 1px;
+        }
+
+        .health-track {
+            height: 12px;
+
+            padding: 2px;
+
+            border: 1px solid
+                rgba(0, 229, 255, 0.25);
+
+            border-radius: 20px;
+
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        #healthBar {
+            width: 100%;
+            height: 100%;
+
+            border-radius: 20px;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    #00e5ff,
+                    #00ff9d
+                );
+
+            box-shadow:
+                0 0 12px
+                rgba(0, 229, 255, 0.7);
+
+            transition: width 0.2s ease;
+        }
+
+        /* =========================================
+           BUTTONS
+        ========================================= */
+
+        .top-buttons {
+            position: absolute;
+
+            top: 85px;
+            right: 20px;
+
+            display: flex;
+            gap: 8px;
+
+            z-index: 20;
+        }
+
+        .ui-button {
+            border: 1px solid
+                rgba(0, 229, 255, 0.35);
+
+            background:
+                rgba(4, 10, 24, 0.85);
+
+            color: #00e5ff;
+
+            padding: 9px 13px;
+
+            border-radius: 6px;
+
+            font-size: 10px;
+            font-weight: 900;
+
+            cursor: pointer;
+
+            transition: 0.25s ease;
+        }
+
+        .ui-button:hover {
+            background: #00e5ff;
+            color: #03040b;
+
+            box-shadow:
+                0 0 15px
+                rgba(0, 229, 255, 0.7);
+        }
+
+        /* =========================================
+           GAME OVER / START SCREEN
+        ========================================= */
+
+        .overlay {
+            position: absolute;
+
+            inset: 0;
+
+            z-index: 50;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+
+            background:
+                rgba(2, 4, 12, 0.76);
+
+            backdrop-filter: blur(5px);
+        }
+
+        .overlay.hidden {
+            display: none;
+        }
+
+        .overlay-box {
+            width: min(470px, 90%);
+
+            padding: 38px 28px;
+
+            text-align: center;
+
+            border: 1px solid
+                rgba(0, 229, 255, 0.35);
+
+            border-radius: 16px;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    rgba(8, 17, 36, 0.97),
+                    rgba(11, 5, 26, 0.97)
+                );
+
+            box-shadow:
+                0 0 45px
+                rgba(0, 229, 255, 0.12);
+        }
+
+        .overlay-icon {
+            font-size: 58px;
+
+            margin-bottom: 15px;
+        }
+
+        .overlay-box h1 {
+            font-size: 38px;
+
+            font-weight: 1000;
+
+            letter-spacing: 1px;
+        }
+
+        .overlay-box h1 span {
+            color: #00e5ff;
+
+            text-shadow:
+                0 0 18px
+                rgba(0, 229, 255, 0.7);
+        }
+
+        .overlay-box p {
+            margin-top: 12px;
+
+            color: #8491a9;
+
+            font-size: 13px;
+
+            line-height: 1.6;
+        }
+
+        .start-button {
+            margin-top: 25px;
+
+            min-width: 190px;
+
+            padding: 14px 25px;
+
+            border: none;
+
+            border-radius: 7px;
+
+            background: #00e5ff;
+
+            color: #03040b;
+
+            font-size: 12px;
+            font-weight: 1000;
+
+            letter-spacing: 1px;
+
+            cursor: pointer;
+
+            box-shadow:
+                0 0 18px
+                rgba(0, 229, 255, 0.7);
+
+            transition: 0.3s ease;
+        }
+
+        .start-button:hover {
+            transform: translateY(-3px);
+
+            background: white;
+
+            box-shadow:
+                0 0 30px
+                rgba(0, 229, 255, 0.9);
+        }
+
+        .main-menu {
+            display: inline-flex;
+
+            align-items: center;
+            justify-content: center;
+
+            margin-top: 12px;
+
+            min-width: 190px;
+
+            padding: 12px 20px;
+
+            text-decoration: none;
+
+            color: #ff66e5;
+
+            border: 1px solid
+                rgba(255, 43, 214, 0.4);
+
+            border-radius: 7px;
+
+            font-size: 10px;
+            font-weight: 900;
+
+            letter-spacing: 1px;
+
+            transition: 0.25s;
+        }
+
+        .main-menu:hover {
+            background:
+                rgba(255, 43, 214, 0.12);
+
+            box-shadow:
+                0 0 20px
+                rgba(255, 43, 214, 0.25);
+        }
+
+        /* =========================================
+           MOBILE CONTROLS
+        ========================================= */
+
+        .mobile-controls {
+            position: absolute;
+
+            left: 0;
+            right: 0;
+            bottom: 70px;
+
+            z-index: 30;
+
+            display: none;
+
+            justify-content: space-between;
+
+            padding: 0 18px;
+
+            pointer-events: none;
+        }
+
+        .control-group {
+            display: flex;
+
+            gap: 8px;
+
+            pointer-events: auto;
+        }
+
+        .control-btn {
+            width: 58px;
+            height: 58px;
+
+            display: grid;
+            place-items: center;
+
+            border-radius: 50%;
+
+            border: 1px solid
+                rgba(0, 229, 255, 0.35);
+
+            background:
+                rgba(4, 9, 22, 0.8);
+
+            color: white;
+
+            font-size: 21px;
+
+            user-select: none;
+            -webkit-user-select: none;
+
+            touch-action: none;
+        }
+
+        .control-btn:active {
+            transform: scale(0.9);
+
+            background:
+                rgba(0, 229, 255, 0.2);
+
+            box-shadow:
+                0 0 20px
+                rgba(0, 229, 255, 0.4);
+        }
+
+        .fire-btn {
+            width: 72px;
+            height: 72px;
+
+            border-color:
+                rgba(255, 43, 214, 0.5);
+
+            background:
+                rgba(255, 43, 214, 0.08);
+        }
+
+        /* =========================================
+           PAUSE
+        ========================================= */
+
+        .pause-text {
+            color: #ff2bd6;
+
+            font-size: 12px;
+            font-weight: 1000;
+
+            letter-spacing: 2px;
+        }
+
+        /* =========================================
+           RESPONSIVE
+        ========================================= */
+
+        @media (max-width: 700px) {
+
+            #gameCanvas {
+                width: 100vw;
+                height: 100vh;
+
+                border: none;
+            }
+
+            .hud {
+                top: 10px;
+
+                grid-template-columns:
+                    repeat(2, 1fr);
+
+                gap: 6px;
+            }
+
+            .hud-box {
+                min-height: 42px;
+
+                padding: 5px;
+            }
+
+            .hud-label {
+                font-size: 7px;
+            }
+
+            .hud-value {
+                font-size: 13px;
+            }
+
+            .top-buttons {
+                top: 105px;
+                right: 10px;
+            }
+
+            .health-panel {
+                bottom: 18px;
+
+                width: 60%;
+            }
+
+            .mobile-controls {
+                display: flex;
+            }
+
+        }
+
+        @media (max-width: 420px) {
+
+            .control-btn {
+                width: 52px;
+                height: 52px;
+            }
+
+            .fire-btn {
+                width: 65px;
+                height: 65px;
+            }
+
+            .overlay-box h1 {
+                font-size: 30px;
+            }
+
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <div class="game-wrapper">
+
+        <canvas id="gameCanvas"></canvas>
+
+
+        <!-- ==============================
+             HUD
+        =============================== -->
+
+        <div class="hud">
+
+            <div class="hud-box">
+                <span class="hud-label">SCORE</span>
+                <span
+                    class="hud-value"
+                    id="scoreValue"
+                >0</span>
+            </div>
+
+            <div class="hud-box">
+                <span class="hud-label">DISTANCE</span>
+                <span
+                    class="hud-value"
+                    id="distanceValue"
+                >0 m</span>
+            </div>
+
+            <div class="hud-box">
+                <span class="hud-label">ENEMIES</span>
+                <span
+                    class="hud-value"
+                    id="enemyValue"
+                >0</span>
+            </div>
+
+            <div class="hud-box">
+                <span class="hud-label">LEVEL</span>
+                <span
+                    class="hud-value"
+                    id="levelValue"
+                >1</span>
+            </div>
+
+        </div>
+
+
+        <!-- ==============================
+             TOP BUTTONS
+        =============================== -->
+
+        <div class="top-buttons">
+
+            <button
+                class="ui-button"
+                id="pauseButton"
+            >
+                ⏸ PAUSE
+            </button>
+
+        </div>
+
+
+        <!-- ==============================
+             HEALTH
+        =============================== -->
+
+        <div class="health-panel">
+
+            <div class="health-title">
+
+                <span>SHIP INTEGRITY</span>
+
+                <span id="healthText">
+                    100 / 100
+                </span>
+
+            </div>
+
+            <div class="health-track">
+
+                <div id="healthBar"></div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ==============================
+             MOBILE CONTROLS
+        =============================== -->
+
+        <div class="mobile-controls">
+
+            <div class="control-group">
+
+                <button
+                    class="control-btn"
+                    id="leftButton"
+                >
+                    ◀
+                </button>
+
+                <button
+                    class="control-btn"
+                    id="rightButton"
+                >
+                    ▶
+                </button>
+
+            </div>
+
+
+            <div class="control-group">
+
+                <button
+                    class="control-btn fire-btn"
+                    id="fireButton"
+                >
+                    🔫
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- ==============================
+             START SCREEN
+        =============================== -->
+
+        <div
+            class="overlay"
+            id="startOverlay"
+        >
+
+            <div class="overlay-box">
+
+                <div class="overlay-icon">
+                    🚀
+                </div>
+
+                <h1>
+                    CYBER <span>HUNTER</span>
+                </h1>
+
+                <p>
+                    Pilot your cyber spaceship,
+                    destroy incoming enemies and
+                    survive as long as possible.
+                </p>
+
+                <p>
+                    <b>PC:</b> Arrow Keys / WASD to move
+                    <br>
+                    <b>Space:</b> Fire
+                </p>
+
+                <button
+                    class="start-button"
+                    id="startButton"
+                >
+                    START MISSION 🚀
+                </button>
+
+                <br>
+
+                <a
+                    class="main-menu"
+                    href="../index.html"
+                >
+                    🏠 MAIN MENU
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <!-- ==============================
+             GAME OVER
+        =============================== -->
+
+        <div
+            class="overlay hidden"
+            id="gameOverOverlay"
+        >
+
+            <div class="overlay-box">
+
+                <div class="overlay-icon">
+                    💥
+                </div>
+
+                <h1>
+                    MISSION <span>OVER</span>
+                </h1>
+
+                <p>
+                    Your spaceship could not continue.
+                </p>
+
+                <p>
+                    Final Score:
+                    <b id="finalScore">0</b>
+                    <br>
+
+                    Distance:
+                    <b id="finalDistance">0 m</b>
+                </p>
+
+                <button
+                    class="start-button"
+                    id="restartButton"
+                >
+                    RESTART MISSION 🔄
+                </button>
+
+                <br>
+
+                <a
+                    class="main-menu"
+                    href="../index.html"
+                >
+                    🏠 MAIN MENU
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <!-- ==============================
+             PAUSE OVERLAY
+        =============================== -->
+
+        <div
+            class="overlay hidden"
+            id="pauseOverlay"
+        >
+
+            <div class="overlay-box">
+
+                <div class="overlay-icon">
+                    ⏸️
+                </div>
+
+                <div class="pause-text">
+                    MISSION PAUSED
+                </div>
+
+                <button
+                    class="start-button"
+                    id="resumeButton"
+                >
+                    RESUME 🚀
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <script src="cyber-hunter.js"></script>
+
+</body>
+</html>
